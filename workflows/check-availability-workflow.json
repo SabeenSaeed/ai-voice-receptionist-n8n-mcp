@@ -1,0 +1,131 @@
+{
+  "name": "Check Availability",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "check-availability",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "f08d6a34-1024-4021-b065-2e10562e4f13",
+      "name": "Webhook",
+      "webhookId": "38c12c68-12a7-48c9-9f13-1a6cffbaa6f2"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        672,
+        0
+      ],
+      "id": "3ba8c4b0-a2f1-4de5-a2bb-ce49bced5841",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "7ef4ef29c78d46844701f21e7871cbe932954380720fd720d8c0b9e572d23dcd@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "Smile Forever Dental"
+        },
+        "timeMin": "={{ $json.body.date }}T00:00:00",
+        "timeMax": "={{ $json.body.date }}T18:00:00",
+        "options": {
+          "orderBy": "startTime",
+          "recurringEventHandling": "expand"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        0
+      ],
+      "id": "b8477def-25a1-4452-954a-88ac76e39926",
+      "name": "Get many events",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "UBANETD2FlkaUIXj",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const requestedDate = $('Webhook').item.json.body.date;\n\nconst hoursByDay = {\n  0: null,\n  1: { start: 8, end: 18 },\n  2: { start: 8, end: 18 },\n  3: { start: 8, end: 18 },\n  4: { start: 8, end: 18 },\n  5: { start: 8, end: 16 },\n  6: { start: 9, end: 13 },\n};\n\nconst slotMinutes = 15;\nconst TZ_OFFSET = '+05:00';\n\n// Timezone-independent day-of-week calculation\nconst [year, month, day] = requestedDate.split('-').map(Number);\nconst dayOfWeek = new Date(Date.UTC(year, month - 1, day)).getUTCDay();\n\nconst hours = hoursByDay[dayOfWeek];\nif (!hours) {\n  return [{ json: { success: true, date: requestedDate, available_slots: [], message: \"Clinic is closed on this day.\" } }];\n}\n\nconst pad = (n) => String(n).padStart(2, '0');\n\nconst allSlots = [];\nfor (let h = hours.start; h < hours.end; h++) {\n  for (let m = 0; m < 60; m += slotMinutes) {\n    allSlots.push({\n      dateObj: new Date(`${requestedDate}T${pad(h)}:${pad(m)}:00${TZ_OFFSET}`),\n      label: `${pad(h)}:${pad(m)}`\n    });\n  }\n}\n\nconst busyPeriods = items\n  .filter(item => item.json.start && item.json.end)\n  .map(item => ({\n    start: new Date(item.json.start.dateTime || item.json.start.date),\n    end: new Date(item.json.end.dateTime || item.json.end.date),\n  }));\n\nconst freeSlots = allSlots.filter(slot => {\n  const slotEnd = new Date(slot.dateObj.getTime() + slotMinutes * 60000);\n  return !busyPeriods.some(busy => slot.dateObj < busy.end && slotEnd > busy.start);\n});\n\nreturn [{\n  json: {\n    success: true,\n    date: requestedDate,\n    available_slots: freeSlots.map(s => s.label),\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "2332a209-e4eb-4460-81bf-56df33dffe1a",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get many events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many events": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "782a702f-a443-4f19-b8aa-383ad3a0e387",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9e6ceb7d66ed56a868152e2d15fd6558a2f97d2c2a2bc7bf99a6d1bd40613498"
+  },
+  "nodeGroups": [],
+  "id": "n9ph7csMgPz5uEdS",
+  "tags": []
+}
