@@ -1,0 +1,11 @@
+# Environment & secrets
+.env
+*.key
+credentials.json
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# n8n
+.n8n/
