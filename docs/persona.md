@@ -40,22 +40,24 @@ This gives your "Check Availability" workflow a real filter parameter (`dentist`
 
 Prices reflect realistic 2025 U.S. general-dentistry averages (not clinic-specific negotiated/insurance rates).
 
-| Service | Price Range (USD) | Typical Duration |
-|---|---|---|
-| Routine Check-up & Cleaning | $80 – $150 | 45 min |
-| Dental X-Ray (set) | $50 – $120 | 15 min |
-| Tooth Filling | $120 – $250 | 30–45 min |
-| Root Canal Treatment | $500 – $1,200 | 60–90 min |
-| Dental Crown | $800 – $1,500 | 2 visits |
-| Tooth Extraction (simple) | $150 – $300 | 30 min |
-| Teeth Whitening (in-office) | $300 – $650 | 60 min |
-| Orthodontic Consultation | Free | 30 min |
-| Braces (full treatment) | $3,000 – $7,000 | Multi-month plan |
-| Invisalign (full treatment) | $3,500 – $8,000 | Multi-month plan |
-| Pediatric Check-up & Cleaning | $60 – $120 | 30 min |
-| Emergency Visit (pain/trauma) | $150 – $300 + treatment cost | Same-day priority slot |
+| Service | Price Range (USD) | Typical Duration | Bookable Single-Visit Duration |
+|---|---|---|---|
+| Routine Check-up & Cleaning | $80 – $150 | 45 min | 45 min |
+| Dental X-Ray (set) | $50 – $120 | 15 min | 15 min |
+| Tooth Filling | $120 – $250 | 30–45 min | 40 min |
+| Root Canal Treatment | $500 – $1,200 | 60–90 min | 75 min |
+| Dental Crown | $800 – $1,500 | 2 visits (prep + placement) | 60 min (prep/impression visit — booked as a standalone appointment; placement visit booked separately when the crown is ready) |
+| Tooth Extraction (simple) | $150 – $300 | 30 min | 30 min |
+| Teeth Whitening (in-office) | $300 – $650 | 60 min | 60 min |
+| Orthodontic Consultation | Free | 30 min | 30 min |
+| Braces (full treatment) | $3,000 – $7,000 | Multi-month plan | 30 min (per adjustment visit, booked individually throughout the treatment plan) |
+| Invisalign (full treatment) | $3,500 – $8,000 | Multi-month plan | 30 min (per check-in visit, booked individually throughout the treatment plan) |
+| Pediatric Check-up & Cleaning | $60 – $120 | 30 min | 30 min |
+| Emergency Visit (pain/trauma) | $150 – $300 + treatment cost | Same-day priority slot | 30 min baseline (front desk may extend on-site depending on severity) |
 
 *Receptionist rule: the AI should always give a price **range**, never a fixed quote, and should say final cost depends on the exam and insurance coverage — this is realistic and keeps the FAQ workflow safe from over-promising.*
+
+*Booking rule: the "Bookable Single-Visit Duration" column is the authoritative value used by the Book Appointment n8n workflow to calculate calendar slot length. Multi-visit services (Crown, Braces, Invisalign) are booked one visit at a time — the caller is never asked to book "the whole treatment" in one call.*
 
 ---
 
