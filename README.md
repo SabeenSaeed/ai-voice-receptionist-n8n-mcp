@@ -36,3 +36,32 @@ Day 2 of 15 — Workflow 1 (Check Availability) complete and tested.
 - [ ] 5. FAQ / Knowledge Base (RAG)
 - [ ] 6. SMS/WhatsApp Confirmation
 - [ ] 7. Escalation / Human Handoff
+
+## Progress log
+
+- **Aug 12** Integrated Workflow 1 (Check Availability) and Workflow 2 (Book 
+  Appointment) into a single verified pipeline. Book Appointment now calls 
+  Check Availability as a sub-workflow to validate slot availability before 
+  writing to the calendar, ensuring both workflows share a single source of 
+  truth for scheduling logic rather than duplicating availability rules.
+
+  Fixed three integration defects surfaced during testing: a data-pinning 
+  artifact that caused executions to replay stale cached output instead of 
+  live API calls; a webhook response node bound to the wrong upstream node, 
+  causing raw Airtable records to leak into the API response instead of the 
+  formatted confirmation message; and a branch-routing bug where slot-conflict 
+  responses were being overwritten with success messages downstream.
+
+  Verified the integration against a 6-case test suite covering the full 
+  read-write-read cycle, duration-aware overlap detection, boundary-adjacent 
+  bookings, clinic-hours enforcement, and input validation. Full results in 
+  `docs/test-cases.md`.
+
+## Workflows (MCP Tools)
+- [x] 1. Check Availability
+- [x] 2. Book Appointment — integrated with Workflow 1, tested (6/6 cases passing)
+- [ ] 3. Reschedule / Cancel Appointment
+- [ ] 4. Patient Lookup (CRM)
+- [ ] 5. FAQ / Knowledge Base (RAG)
+- [ ] 6. SMS/WhatsApp Confirmation
+- [ ] 7. Escalation / Human Handoff
