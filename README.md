@@ -65,3 +65,34 @@ Day 2 of 15 — Workflow 1 (Check Availability) complete and tested.
 - [ ] 5. FAQ / Knowledge Base (RAG)
 - [ ] 6. SMS/WhatsApp Confirmation
 - [ ] 7. Escalation / Human Handoff
+
+- **Aug 13** Built and fully verified Workflow 3 — Reschedule or Cancel 
+  Appointment. The workflow locates a caller's active booking by phone 
+  number, then branches on a `cancel` / `reschedule` action: cancellation 
+  deletes the calendar event and marks the Airtable record `Cancelled`; 
+  rescheduling re-validates the requested slot against Workflow 1 (Check 
+  Availability) before deleting the old event and creating a new one, 
+  ensuring reschedule requests are held to the same conflict-detection 
+  rules as new bookings rather than bypassing them.
+
+  Verified against a 6-case test suite covering record-not-found handling, 
+  cancellation, rescheduling, slot-conflict rejection, and invalid input. 
+  Found and fixed five defects during testing, the most significant being 
+  a missing availability check on the reschedule path that would have 
+  allowed a caller to reschedule directly into an already-booked slot. 
+  Full defect log and test results in `docs/test-cases.md`.
+
+  Also resolved a testing-workflow issue: manual re-arming of n8n's 
+  single-use test webhook before every request was causing accidental 
+  double-execution when combined with the canvas "Execute workflow" 
+  button. Switched all manual testing to the permanent production webhook 
+  URLs, eliminating the arm-per-request requirement entirely.
+
+## Workflows (MCP Tools)
+- [x] 1. Check Availability
+- [x] 2. Book Appointment — integrated with Workflow 1, tested (6/6 cases passing)
+- [x] 3. Reschedule / Cancel Appointment — integrated with Workflow 1, tested (6/6 cases passing)
+- [ ] 4. Patient Lookup (CRM)
+- [ ] 5. FAQ / Knowledge Base (RAG)
+- [ ] 6. SMS/WhatsApp Confirmation
+- [ ] 7. Escalation / Human Handoff

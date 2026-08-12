@@ -107,3 +107,119 @@ attempted.
 - Dentist-specific filtering — deferred; current implementation treats 
   availability as clinic-wide across all three dentists sharing one calendar.
 - Multi-day/recurring appointment patterns — out of scope for MVP.
+
+---
+
+# Test Suite — Reschedule / Cancel Appointment
+
+**Date:** August 13, 2026
+**Scope:** Verifies Workflow 3 in isolation and in combination with 
+Workflow 1 (Check Availability), which it invokes as a sub-workflow to 
+validate reschedule requests against live calendar state — the same 
+pattern established in Workflow 2.
+
+**Method:** Manual black-box testing via direct webhook invocation (curl) 
+against the workflow's production endpoint. Testing initially used the 
+single-use test webhook URL; this was abandoned mid-session in favor of 
+the production URL after it was identified as the source of a false 
+defect (see Defects table).
+
+---
+
+## Results Summary
+
+| # | Test Case | Category | Result |
+|---|-----------|----------|--------|
+| 1 | Record not found (unregistered phone number) | Input handling | ✅ Pass |
+| 2 | Cancel an existing booked appointment | Core flow | ✅ Pass |
+| 3 | Reschedule to a new date/time | Core flow | ✅ Pass |
+| 4 | Reschedule into an already-booked slot | Conflict detection | ✅ Pass |
+| 5 | Reschedule to a valid, open slot (post-fix regression check) | Core flow | ✅ Pass |
+| 6 | Unrecognized `action` value | Input validation | ✅ Pass |
+
+**6/6 passing.**
+
+---
+
+## Test Detail
+
+### 1. Record not found
+Requested cancellation for a phone number with no `Booked` status record 
+in Airtable.
+
+**Result:** `success: false`, with a clear message inviting the caller to 
+double-check the number or book a new appointment. Confirms the workflow 
+distinguishes "no matching record" from a system error and responds 
+accordingly, rather than failing silently or throwing a raw error.
+
+### 2. Cancel an existing appointment
+Booked a fresh appointment via Workflow 2, then issued a cancel request 
+against the same phone number.
+
+**Result:** Calendar event deleted, Airtable `Status` updated to 
+`Cancelled`, and a formatted confirmation returned to the caller.
+
+### 3. Reschedule to a new date/time
+Booked a fresh appointment, then requested a reschedule to a different 
+date and time with no conflicts.
+
+**Result:** Original event deleted, new event created at the requested 
+time, Airtable record updated with the new date/time while `Status` 
+correctly remained `Booked` (not overwritten to `Cancelled`, confirming 
+the two branches use independent update logic).
+
+### 4. Reschedule into an already-booked slot
+Booked two appointments for the same day at different times under 
+different phone numbers, then attempted to reschedule the second into 
+the first's exact slot.
+
+**Result:** `success: false`, slot-unavailable message. Confirms 
+reschedule requests are validated against live availability before any 
+calendar mutation occurs — this is the most consequential test in the 
+suite, as the initial build had no such check (see Defects).
+
+### 5. Reschedule to a valid slot (regression check)
+Re-ran the reschedule flow against an open slot immediately after fixing 
+the availability-check defect, to confirm the fix didn't break the 
+legitimate success path.
+
+**Result:** `success: true`, correctly formatted confirmation.
+
+### 6. Unrecognized action value
+Sent a request with `"action": "delete_everything"` — a value matching 
+neither of the workflow's two defined routes.
+
+**Result:** `success: false`, with a message clarifying the two valid 
+actions. Confirms the routing logic has an explicit fallback rather than 
+failing open or silent.
+
+---
+
+## Defects Found & Resolved During This Test Cycle
+
+| # | Defect | Root Cause | Fix |
+|---|--------|-----------|-----|
+| 1 | Zero-result search caused the entire execution to halt with no response | Airtable's "Search records" returns zero items (not an empty object) when no match exists; n8n halts downstream execution by default when a node produces no output | Enabled "Always Output Data" selectively, and confirmed the "If" node's condition correctly evaluates presence via array length rather than assuming a non-empty item always exists |
+| 2 | Successful cancellations returned raw Airtable record objects instead of a caller-facing message | "Respond to Webhook" was bound directly to the Airtable update node's output, bypassing message formatting | Inserted a dedicated formatting node between the Airtable update and the response node, mirroring the pattern already established in Workflow 2 |
+| 3 | Reschedule requests were accepted unconditionally, with no check that the new slot was actually free | The reschedule branch called Delete/Create directly with no validation step — an architectural gap, not a copy-paste error | Added a call to the Check Availability sub-workflow ahead of the delete/create sequence, gated by an `IF` node checking the requested slot against the returned `available_slots` array — identical pattern to Workflow 2's pre-booking validation |
+| 4 | The Check Availability sub-workflow call and the calendar delete step both received `undefined` for date and event ID | Expressions referenced `$json.*`, which resolves to the *immediately preceding* node's output; several nodes upstream, `$json` no longer pointed at the record data those expressions assumed | Replaced ambient `$json` references with explicit node references (e.g. `$('Search records').first().json.fields.event_id`), which resolve correctly regardless of how many nodes sit in between |
+| 5 | Manual testing intermittently produced "resource already deleted" errors on legitimate, single test attempts | Test-mode webhooks are single-use per arm; combining "Listen for test event" with the canvas "Execute workflow" button before VAPI was connected caused the same request to be processed twice against the same calendar resource | Switched manual testing to the workflow's permanent production webhook URL, removing the need to arm/re-arm and eliminating the double-execution path entirely |
+
+---
+
+## Design Notes
+
+**Sub-workflow reuse for availability logic.** Both Workflow 2 (Book 
+Appointment) and Workflow 3 (Reschedule) call Workflow 1 (Check 
+Availability) rather than each implementing their own slot-conflict 
+logic. This keeps business rules — clinic hours, per-dentist schedules, 
+appointment-duration overlap — defined in exactly one place. A future 
+change to clinic hours or slot granularity requires editing Workflow 1 
+only; Workflows 2 and 3 inherit the change automatically.
+
+**Known limitation — appointment lookup by phone number only.** 
+"Search records" filters on `Phone` + `Status = 'Booked'` and does not 
+disambiguate by date if a patient has more than one active booking. For 
+this portfolio build, one active appointment per phone number is assumed. 
+Production use would require the caller to specify which appointment 
+(e.g. by date) when more than one match is returned.
