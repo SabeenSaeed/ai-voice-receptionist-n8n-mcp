@@ -1,0 +1,655 @@
+{
+  "name": "Book Appointment",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "book-appointment",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        336
+      ],
+      "id": "fdf38b9d-e580-40b9-be9b-49ed37267c6b",
+      "name": "Webhook",
+      "webhookId": "0ccc0a2b-0869-4a59-8732-b4b3fa8e9a15"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2240,
+        336
+      ],
+      "id": "743ae365-ce73-4303-8dfc-4a720fd8616c",
+      "name": "Respond to Webhook",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "mode": "id",
+          "value": "7ef4ef29c78d46844701f21e7871cbe932954380720fd720d8c0b9e572d23dcd@group.calendar.google.com",
+          "__regex": "(^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)*)"
+        },
+        "start": "={{ DateTime.fromISO($('Resolve Duration').item.json.body.date + 'T' + $('Resolve Duration').item.json.body.time + ':00', {zone: 'Asia/Karachi'}).toISO() }}",
+        "end": "={{ DateTime.fromISO($('Resolve Duration').item.json.body.date + 'T' + $('Resolve Duration').item.json.body.time + ':00', {zone: 'Asia/Karachi'}).plus({minutes: $('Resolve Duration').item.json.body.duration_minutes}).toISO() }}",
+        "additionalFields": {
+          "description": "={{ $('Resolve Duration').item.json.body.appointment_type }} | Phone: {{ $('Resolve Duration').item.json.body.phone }}",
+          "showMeAs": "opaque",
+          "summary": "={{ $('Resolve Duration').item.json.body.dentist }} — {{ $('Resolve Duration').item.json.body.patient_name }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        1344,
+        144
+      ],
+      "id": "520d6a3b-7554-4c95-8cac-b5f4cae8c5dd",
+      "name": "Create an event",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "UBANETD2FlkaUIXj",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// ============================================================\n// RESOLVE APPOINTMENT DURATION\n// Safely handles missing/malformed input\n// ============================================================\n\nconst item = $input.item.json;\n\n// The validated workflow normally stores the request in `body`.\n// We intentionally do NOT silently accept arbitrary malformed data.\nconst body = item?.body;\n\nif (!body || typeof body !== 'object') {\n  return {\n    json: {\n      valid: false,\n      error_message: 'Appointment data is missing or has an invalid structure.',\n      error_code: 'MISSING_APPOINTMENT_BODY'\n    }\n  };\n}\n\n// Required field check.\n// Validate Input should normally catch these first,\n// but this is a final safety net.\nconst requiredFields = [\n  'date',\n  'time',\n  'patient_name',\n  'phone',\n  'dentist',\n  'appointment_type'\n];\n\nconst missingFields = requiredFields.filter(\n  field =>\n    body[field] === undefined ||\n    body[field] === null ||\n    String(body[field]).trim() === ''\n);\n\nif (missingFields.length > 0) {\n  return {\n    json: {\n      valid: false,\n      error_message: `Missing required field(s): ${missingFields.join(', ')}`,\n      error_code: 'MISSING_REQUIRED_FIELDS',\n      missing_fields: missingFields\n    }\n  };\n}\n\n\n// ============================================================\n// DURATION MAP\n// ============================================================\n\nconst durationMap = {\n  \"routine check-up & cleaning\": 45,\n  \"check-up\": 45,\n  \"checkup\": 45,\n  \"cleaning\": 45,\n\n  \"dental x-ray\": 15,\n  \"x-ray\": 15,\n\n  \"tooth filling\": 40,\n  \"filling\": 40,\n\n  \"root canal treatment\": 75,\n  \"root canal\": 75,\n\n  \"dental crown\": 60,\n  \"crown\": 60,\n\n  \"tooth extraction\": 30,\n  \"extraction\": 30,\n\n  \"teeth whitening\": 60,\n  \"whitening\": 60,\n\n  \"orthodontic consultation\": 30,\n  \"braces\": 30,\n  \"invisalign\": 30,\n\n  \"pediatric check-up & cleaning\": 30,\n\n  \"emergency visit\": 30,\n  \"emergency\": 30,\n\n  \"tooth pain\": 30\n};\n\n\n// ============================================================\n// FIND DURATION\n// ============================================================\n\nconst appointmentType = String(body.appointment_type)\n  .toLowerCase()\n  .trim();\n\nlet duration = durationMap[appointmentType];\nlet matched = duration !== undefined;\n\n// Substring matching\nif (!matched) {\n  const matchedKey = Object.keys(durationMap)\n    .sort((a, b) => b.length - a.length)\n    .find(key => appointmentType.includes(key));\n\n  if (matchedKey) {\n    duration = durationMap[matchedKey];\n    matched = true;\n  }\n}\n\n// Safe fallback\nif (!matched) {\n  duration = 30;\n}\n\n\n// ============================================================\n// RETURN ORIGINAL DATA + RESOLVED DURATION\n// ============================================================\n\nreturn {\n  json: {\n    ...item,\n    valid: true,\n    body: {\n      ...body,\n      duration_minutes: duration,\n      duration_matched: matched\n    }\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        240
+      ],
+      "id": "1ee73e4f-61f7-4c63-bce8-9c921cb9eaf8",
+      "name": "Resolve Duration",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const input = $input.item.json;\nconst body = input.body || {};\n\nconst requiredFields = [\n  \"date\",\n  \"time\",\n  \"patient_name\",\n  \"phone\",\n  \"dentist\",\n  \"appointment_type\"\n];\n\nconst missingFields = requiredFields.filter(field => {\n  const value = body[field];\n  return value === undefined ||\n         value === null ||\n         String(value).trim() === \"\";\n});\n\n// Allowed dentists\nconst allowedDentists = [\n  \"Dr. Reyes\",\n  \"Dr. Malik\",\n  \"Dr. Nathan\"\n];\n\nconst errors = [];\n\n// Check required fields\nif (missingFields.length > 0) {\n  errors.push(\n    `Missing required field(s): ${missingFields.join(\", \")}`\n  );\n}\n\n// Check dentist\nif (\n  body.dentist &&\n  !allowedDentists.includes(body.dentist)\n) {\n  errors.push(\n    `Invalid dentist. Allowed dentists: ${allowedDentists.join(\", \")}`\n  );\n}\n\n// Check date format\nif (\n  body.date &&\n  !/^\\d{4}-\\d{2}-\\d{2}$/.test(body.date)\n) {\n  errors.push(\n    \"Invalid date format. Use YYYY-MM-DD.\"\n  );\n}\n\n// Check time format\nif (\n  body.time &&\n  !/^\\d{2}:\\d{2}$/.test(body.time)\n) {\n  errors.push(\n    \"Invalid time format. Use HH:MM.\"\n  );\n}\n\n\n// ==========================================\n// VALIDATION RESULT\n// ==========================================\n\nif (errors.length > 0) {\n\n  return {\n    json: {\n      valid: false,\n      error_message: errors.join(\" \"),\n      error_code: \"VALIDATION_ERROR\",\n      body: null\n    }\n  };\n\n}\n\n\n// ==========================================\n// VALID REQUEST\n// ==========================================\n\nreturn {\n  json: {\n    valid: true,\n    error_message: null,\n    error_code: null,\n\n    body: {\n      date: body.date,\n      time: body.time,\n      patient_name: body.patient_name,\n      phone: body.phone,\n      dentist: body.dentist,\n      appointment_type: body.appointment_type\n    }\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        336
+      ],
+      "id": "1bdd5a04-aeb6-4d9e-addd-9b5606dd1657",
+      "name": "Validate Input",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "8623d8f5-b8d1-4a55-98ff-5f59841e5a73",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "is true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        336
+      ],
+      "id": "a48591a2-62ed-4591-9281-80cb8ba773a4",
+      "name": "If",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  json: {\n    success: false,\n    message: $input.item.json.error_message\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        624
+      ],
+      "id": "339ce340-e6ba-4c79-8ead-e397b5040675",
+      "name": "Format Validation Error",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6185e830-d562-4fc5-8de6-ccad42ba51a1",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1568,
+        144
+      ],
+      "id": "28b48114-5c3a-4b1e-bbeb-3ca70708f27c",
+      "name": "If1",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  json: {\n    success: false,\n    message: \"I'm having trouble booking that appointment right now. Let me have our front desk follow up with you shortly to confirm.\"\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        48
+      ],
+      "id": "678f6648-d7e4-4422-9d21-f579ca6d9e55",
+      "name": "Format Calendar Error",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appxpO525SBKQT6A4",
+          "mode": "list",
+          "cachedResultName": "Smile Forever Dental — Clinic CRM",
+          "cachedResultUrl": "https://airtable.com/appxpO525SBKQT6A4"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl1jdwuQGpa7gRqt",
+          "mode": "list",
+          "cachedResultName": "Appointments",
+          "cachedResultUrl": "https://airtable.com/appxpO525SBKQT6A4/tbl1jdwuQGpa7gRqt"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_id": "={{ $json.id }}",
+            "Status": "=Booked",
+            "Patient Name": "={{ $('Resolve Duration').item.json.body.patient_name }}",
+            "Date": "={{ $('Resolve Duration').item.json.body.date }}",
+            "Time": "={{ $('Resolve Duration').item.json.body.time }}",
+            "Dentist": "={{ $('Resolve Duration').item.json.body.dentist }}",
+            "Service": "={{ $('Resolve Duration').item.json.body.appointment_type }}",
+            "Phone": "={{ $('Resolve Duration').item.json.body.phone }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Patient Name",
+              "displayName": "Patient Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Time",
+              "displayName": "Time",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Dentist",
+              "displayName": "Dentist",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Dr. Reyes",
+                  "value": "Dr. Reyes"
+                },
+                {
+                  "name": "Dr. Malik",
+                  "value": "Dr. Malik"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Service",
+              "displayName": "Service",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Booked",
+                  "value": "Booked"
+                },
+                {
+                  "name": "Completed",
+                  "value": "Completed"
+                },
+                {
+                  "name": "Cancelled",
+                  "value": "Cancelled"
+                },
+                {
+                  "name": "No-show",
+                  "value": "No-show"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "event_id",
+              "displayName": "event_id",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "typecast": true
+        }
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        1792,
+        240
+      ],
+      "id": "34a3afa8-96f5-4685-84a7-dbf4f9ce3277",
+      "name": "Create a record",
+      "alwaysOutputData": false,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "603kf9bINhUTctfF",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "n9ph7csMgPz5uEdS",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/n9ph7csMgPz5uEdS",
+          "cachedResultName": "Check Availability"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "date": "={{ $json.body.date }}"
+          },
+          "matchingColumns": [
+            "date"
+          ],
+          "schema": [
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        896,
+        240
+      ],
+      "id": "2f69c7ed-09ab-4fe8-a39f-2a0ab8ef238a",
+      "name": "Call 'Check Availability'",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "94c8178f-f476-4eab-9e46-370ea4b78371",
+              "leftValue": "={{ $json.available_slots.includes($('Resolve Duration').item.json.body.time) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1120,
+        240
+      ],
+      "id": "f9de25a6-764e-41a8-95e5-fd69ddbaff82",
+      "name": "IF: Slot Available?"
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  json: {\n    success: false,\n    message: \"That time slot isn't available. Would you like me to check other available times for that day?\"\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        432
+      ],
+      "id": "f30edf8d-b524-49ed-abcb-2992d5a02eba",
+      "name": "Format Slot Unavailable"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $('Resolve Duration').item.json.body;\nconst dateObj = new Date(body.date);\nconst readableDate = dateObj.toLocaleDateString('en-US', { \n  month: 'long', \n  day: 'numeric' \n});\n\nconst [hour, minute] = body.time.split(':');\nconst hourNum = parseInt(hour);\nconst period = hourNum >= 12 ? 'PM' : 'AM';\nconst hour12 = hourNum % 12 === 0 ? 12 : hourNum % 12;\nconst readableTime = `${hour12}:${minute} ${period}`;\n\nreturn {\n  json: {\n    success: true,\n    message: `Your appointment for ${body.appointment_type} with ${body.dentist} is confirmed for ${readableDate} at ${readableTime}.`,\n    appointment_details: {\n      patient_name: body.patient_name,\n      date: body.date,\n      time: body.time,\n      duration_minutes: body.duration_minutes,\n      dentist: body.dentist,\n      appointment_type: body.appointment_type\n    }\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        240
+      ],
+      "id": "b6f0cf24-a7e5-4976-a6fa-b2e8e374474e",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an event": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Duration": {
+      "main": [
+        [
+          {
+            "node": "Call 'Check Availability'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Resolve Duration",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Validation Error": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Create a record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Calendar Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Calendar Error": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a record": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Check Availability'": {
+      "main": [
+        [
+          {
+            "node": "IF: Slot Available?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Slot Available?": {
+      "main": [
+        [
+          {
+            "node": "Create an event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Slot Unavailable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Slot Unavailable": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "9467f0d3-1044-4cac-97af-c911e7e449b1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9e6ceb7d66ed56a868152e2d15fd6558a2f97d2c2a2bc7bf99a6d1bd40613498"
+  },
+  "nodeGroups": [],
+  "id": "CV4LU2Qt1GZboekZ",
+  "tags": []
+}

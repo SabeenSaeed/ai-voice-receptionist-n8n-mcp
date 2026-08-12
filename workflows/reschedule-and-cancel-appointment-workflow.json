@@ -1,0 +1,1025 @@
+{
+  "name": "Reschedule or Cancel Appointment",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "reschedule-appointment",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -336,
+        256
+      ],
+      "id": "99751a43-d5ec-44d0-926f-c69f0d50e3d8",
+      "name": "Webhook",
+      "webhookId": "a86b3755-5d5d-40eb-b4c1-7fb822f73104"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9a911d71-7c1f-406d-9607-05e3740531d4",
+              "name": "phone",
+              "value": "={{ $json.body?.phone || $json.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "99bf1d1b-0632-47ef-9a9d-19de0c65030e",
+              "name": "action",
+              "value": "={{ $json.body?.action || $json.action }}",
+              "type": "string"
+            },
+            {
+              "id": "16d6b8d6-6c06-40a3-8390-be1f1d4683b7",
+              "name": "new_date",
+              "value": "={{ $json.body?.new_date || $json.new_date }}",
+              "type": "string"
+            },
+            {
+              "id": "ab9d5303-952f-48fd-828c-85c1dbd19a3b",
+              "name": "new_time",
+              "value": "={{ $json.body?.new_time || $json.new_time }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -112,
+        256
+      ],
+      "id": "e9541c84-a187-46c4-8d76-589030facf2b",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appxpO525SBKQT6A4",
+          "mode": "list",
+          "cachedResultName": "Smile Forever Dental — Clinic CRM",
+          "cachedResultUrl": "https://airtable.com/appxpO525SBKQT6A4"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl1jdwuQGpa7gRqt",
+          "mode": "list",
+          "cachedResultName": "Appointments",
+          "cachedResultUrl": "https://airtable.com/appxpO525SBKQT6A4/tbl1jdwuQGpa7gRqt"
+        },
+        "filterByFormula": "=AND({Status}='Booked', {Phone}='{{ $json.phone }}')",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        112,
+        256
+      ],
+      "id": "9251de6f-b2d8-48d7-a13f-9f8cd4a598eb",
+      "name": "Search records",
+      "alwaysOutputData": true,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "603kf9bINhUTctfF",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c6d57470-1799-41ff-9ab9-dc62ea4bed6e",
+              "leftValue": "={{ $('Search records').all().length > 0 && $('Search records').first().json.id !== undefined }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        336,
+        256
+      ],
+      "id": "6e1ec310-cfec-4f47-95c6-f6bacd57d21f",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Edit Fields').item.json.action }}",
+                    "rightValue": "cancel",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "3dfcbeff-9a18-4396-88ab-092a7392df08"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "d4488a9c-9aa9-412c-81df-df5def836775",
+                    "leftValue": "={{ $('Edit Fields').item.json.action }}",
+                    "rightValue": "reschedule",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        560,
+        48
+      ],
+      "id": "a38c3cbf-6c30-4685-9ea4-ea462a67c832",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "calendar": {
+          "__rl": true,
+          "value": "7ef4ef29c78d46844701f21e7871cbe932954380720fd720d8c0b9e572d23dcd@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "Smile Forever Dental"
+        },
+        "eventId": "={{ $json.fields.event_id }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        1456,
+        64
+      ],
+      "id": "1843dff2-f4d2-4cf4-995c-f2aca7931579",
+      "name": "Delete an event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "UBANETD2FlkaUIXj",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appxpO525SBKQT6A4",
+          "mode": "list",
+          "cachedResultName": "Smile Forever Dental — Clinic CRM",
+          "cachedResultUrl": "https://airtable.com/appxpO525SBKQT6A4"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl1jdwuQGpa7gRqt",
+          "mode": "list",
+          "cachedResultName": "Appointments",
+          "cachedResultUrl": "https://airtable.com/appxpO525SBKQT6A4/tbl1jdwuQGpa7gRqt"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Search records').item.json.id }}",
+            "Status": "Cancelled"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Patient Name",
+              "displayName": "Patient Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Time",
+              "displayName": "Time",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Dentist",
+              "displayName": "Dentist",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Dr. Reyes",
+                  "value": "Dr. Reyes"
+                },
+                {
+                  "name": "Dr. Malik",
+                  "value": "Dr. Malik"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Service",
+              "displayName": "Service",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Booked",
+                  "value": "Booked"
+                },
+                {
+                  "name": "Completed",
+                  "value": "Completed"
+                },
+                {
+                  "name": "Cancelled",
+                  "value": "Cancelled"
+                },
+                {
+                  "name": "No-show",
+                  "value": "No-show"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "event_id",
+              "displayName": "event_id",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        1680,
+        64
+      ],
+      "id": "46e828b2-3635-403e-b428-e395be9dd515",
+      "name": "Update record",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "603kf9bINhUTctfF",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "calendar": {
+          "__rl": true,
+          "value": "7ef4ef29c78d46844701f21e7871cbe932954380720fd720d8c0b9e572d23dcd@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "Smile Forever Dental"
+        },
+        "eventId": "={{ $('Search records').first().json.fields.event_id }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        1232,
+        -320
+      ],
+      "id": "5ded521d-d631-4d3b-8b8a-219cb9c82988",
+      "name": "Delete an event1",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "UBANETD2FlkaUIXj",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "7ef4ef29c78d46844701f21e7871cbe932954380720fd720d8c0b9e572d23dcd@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "Smile Forever Dental"
+        },
+        "start": "={{ $('Edit Fields').item.json.new_date + 'T' + $('Edit Fields').item.json.new_time + ':00' }}",
+        "end": "={{ DateTime.fromISO($('Edit Fields').item.json.new_date + 'T' + $('Edit Fields').item.json.new_time + ':00').plus({ minutes: 45 }).toISO() }}",
+        "additionalFields": {
+          "description": "={{ 'Patient: ' + $('Search records').item.json.fields['Patient Name'] + '\\nPhone: ' + $('Search records').item.json.fields['Phone'] + '\\nDentist: ' + $('Search records').item.json.fields['Dentist'] + '\\nService: ' + $('Search records').item.json.fields['Service'] + '\\nAppointment rescheduled by patient.' }}",
+          "summary": "={{ $('Search records').item.json.fields['Service'] + ' - ' + $('Search records').item.json.fields['Patient Name'] }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        1456,
+        -320
+      ],
+      "id": "d12cd8e6-ac48-4926-8382-31954fa4308e",
+      "name": "Create an event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "UBANETD2FlkaUIXj",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appxpO525SBKQT6A4",
+          "mode": "list",
+          "cachedResultName": "Smile Forever Dental — Clinic CRM",
+          "cachedResultUrl": "https://airtable.com/appxpO525SBKQT6A4"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl1jdwuQGpa7gRqt",
+          "mode": "list",
+          "cachedResultName": "Appointments",
+          "cachedResultUrl": "https://airtable.com/appxpO525SBKQT6A4/tbl1jdwuQGpa7gRqt"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Search records').item.json.id }}",
+            "Date": "={{ $('Edit Fields').item.json.new_date }}",
+            "Time": "={{ $('Edit Fields').item.json.new_time }}",
+            "Status": "Booked",
+            "Phone": "={{ $('Search records').item.json.fields.Phone }}",
+            "event_id": "={{ $('Search records').item.json.fields.event_id }}",
+            "Service": "={{ $('Search records').item.json.fields.Service }}",
+            "Dentist": "={{ $('Search records').item.json.fields.Dentist }}",
+            "Patient Name": "={{ $('Search records').item.json.fields[\"Patient Name\"] }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Patient Name",
+              "displayName": "Patient Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Time",
+              "displayName": "Time",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Dentist",
+              "displayName": "Dentist",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Dr. Reyes",
+                  "value": "Dr. Reyes"
+                },
+                {
+                  "name": "Dr. Malik",
+                  "value": "Dr. Malik"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Service",
+              "displayName": "Service",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Booked",
+                  "value": "Booked"
+                },
+                {
+                  "name": "Completed",
+                  "value": "Completed"
+                },
+                {
+                  "name": "Cancelled",
+                  "value": "Cancelled"
+                },
+                {
+                  "name": "No-show",
+                  "value": "No-show"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "event_id",
+              "displayName": "event_id",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "typecast": true
+        }
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        1680,
+        -320
+      ],
+      "id": "42dce7e6-5f41-48f8-b98e-32e7a13b0aac",
+      "name": "Update record1",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "603kf9bINhUTctfF",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2128,
+        64
+      ],
+      "id": "ee3e80d2-d784-47ed-9e1e-ab946c96f2ba",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  json: {\n    success: false,\n    message: \"I couldn't find a booked appointment under that phone number. Could you double-check the number, or would you like to book a new appointment instead?\"\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1904,
+        448
+      ],
+      "id": "6a330264-961c-4fa7-9ef2-c122b29c9b89",
+      "name": "Format Not Found Error"
+    },
+    {
+      "parameters": {
+        "jsCode": "const fields = $json.fields;\nreturn {\n  json: {\n    success: true,\n    message: `Your appointment on ${fields.Date} at ${fields.Time} with ${fields.Dentist} has been cancelled.`,\n    appointment_details: {\n      patient_name: fields['Patient Name'],\n      date: fields.Date,\n      time: fields.Time,\n      dentist: fields.Dentist,\n      status: fields.Status\n    }\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1904,
+        64
+      ],
+      "id": "ca9ce47b-6d4a-40c3-a34f-fd3fb055e69d",
+      "name": "FINAL FORMATTED RESPONSE"
+    },
+    {
+      "parameters": {
+        "jsCode": "const fields = $json.fields;\nreturn {\n  json: {\n    success: true,\n    message: `Your appointment has been rescheduled to ${fields.Date} at ${fields.Time} with ${fields.Dentist}.`,\n    appointment_details: {\n      patient_name: fields['Patient Name'],\n      date: fields.Date,\n      time: fields.Time,\n      dentist: fields.Dentist,\n      status: fields.Status\n    }\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1904,
+        -320
+      ],
+      "id": "d3a804b5-ec0c-41db-9775-914068b70290",
+      "name": "fORMATTED RESPONSE"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "n9ph7csMgPz5uEdS",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/n9ph7csMgPz5uEdS",
+          "cachedResultName": "Check Availability"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "date": "={{ $('Edit Fields').item.json.new_date }}"
+          },
+          "matchingColumns": [
+            "date"
+          ],
+          "schema": [
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        784,
+        -224
+      ],
+      "id": "89696b47-3b73-4b17-bcff-0eb589a8dfef",
+      "name": "Call 'Check Availability'"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "865e11b4-6d4a-435a-875d-37a764664209",
+              "leftValue": "={{ $('Call \\'Check Availability\\'').item.json.available_slots.includes($('Edit Fields').item.json.new_time) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1008,
+        -224
+      ],
+      "id": "c843b81a-d4f5-4379-8f74-768d4f0e070e",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  json: {\n    success: false,\n    message: \"That new time isn't available. Would you like me to check other available times for that day?\"\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1904,
+        -128
+      ],
+      "id": "3a1b55fb-c779-4f45-89d1-fec817c7ba30",
+      "name": "Format Reschedule Unavailable"
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  json: {\n    success: false,\n    message: \"I didn't understand that request. You can cancel or reschedule an appointment — which would you like to do?\"\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1904,
+        256
+      ],
+      "id": "bdd30bbe-dd8b-4c56-a521-f50debf1557b",
+      "name": "Format Invalid Action Error"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Search records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search records": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Not Found Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Delete an event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call 'Check Availability'",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Invalid Action Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete an event": {
+      "main": [
+        [
+          {
+            "node": "Update record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete an event1": {
+      "main": [
+        [
+          {
+            "node": "Create an event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an event": {
+      "main": [
+        [
+          {
+            "node": "Update record1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update record": {
+      "main": [
+        [
+          {
+            "node": "FINAL FORMATTED RESPONSE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update record1": {
+      "main": [
+        [
+          {
+            "node": "fORMATTED RESPONSE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Not Found Error": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FINAL FORMATTED RESPONSE": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fORMATTED RESPONSE": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Check Availability'": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Delete an event1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Reschedule Unavailable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Reschedule Unavailable": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Invalid Action Error": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "4b6ef652-3ac2-43ac-9cec-8e26990517a8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9e6ceb7d66ed56a868152e2d15fd6558a2f97d2c2a2bc7bf99a6d1bd40613498"
+  },
+  "nodeGroups": [],
+  "id": "y3AdvOgy2EwNXega",
+  "tags": []
+}
