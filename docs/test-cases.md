@@ -223,3 +223,58 @@ disambiguate by date if a patient has more than one active booking. For
 this portfolio build, one active appointment per phone number is assumed. 
 Production use would require the caller to specify which appointment 
 (e.g. by date) when more than one match is returned.
+
+---
+
+## Workflow 4: Patient Lookup / CRM
+
+**Test method:** Webhook integration tests via `curl` against
+`/webhook-test/patient-lookup`, verified against live Airtable state.
+**Result:** 14/14 passed
+
+### Defects found and fixed during testing
+
+| # | Defect | Root cause | Fix |
+|---|---|---|---|
+| 1 | Workflow halted silently on zero Airtable matches | `Search records` returns no items on a non-match; n8n does not propagate execution past a node with zero output items by default | Enabled **Always Output Data** on `Search records` |
+| 2 | `"Welcome back, undefined..."` returned for a phone number with no real patient record | `IF: Patient Found?` only checked *record existence*, which is also true for placeholder ("New Patient") records | Added second condition, `IF: Real Patient?`, checking `Patient Name` / `Status` are not the placeholder value |
+| 3 | Airtable node failed with `"DNS server returned an error"` | n8n Docker container was restarted without the `--dns` flags from the original `docker run` command; DNS config did not persist across container recreation | Recreated container with explicit `--dns 8.8.8.8 --dns 8.8.4.4` and `--restart unless-stopped`, so DNS configuration survives future restarts |
+
+### Test cases
+
+#### Valid, existing patient — format variance
+
+| # | Input `phone` | Expected | Result |
+|---|---|---|---|
+| 1 | `512-555-7788` | `patient_found: true`, name `Production Test Patient` | ✅ Pass |
+| 2 | `5125557788` | Same patient resolved; normalized to `512-555-7788` | ✅ Pass |
+| 3 | `(512) 555-7788` | Same patient resolved | ✅ Pass |
+| 4 | `+1 512-555-7788` | Same patient resolved; country code stripped | ✅ Pass |
+| 5 | `+1 (512) 555-7788` | Same patient resolved; combined format handled | ✅ Pass |
+| 6 | `5125557788` (as JSON number, not string) | Normalized and resolved correctly; confirms type coercion via `String()` | ✅ Pass |
+
+#### Unknown caller / placeholder resolution
+
+| # | Scenario | Expected | Result |
+|---|---|---|---|
+| 7 | First lookup of unregistered number `512-555-8899` | `patient_found: false`; placeholder record created in Airtable | ✅ Pass |
+| 8 | Second lookup of the same number `512-555-8899` | Still `patient_found: false` (not a false-positive match on the placeholder record) — this is the case that exposed Defect #2 above | ✅ Pass |
+
+#### Invalid input handling
+
+| # | Input `phone` | Expected | Result |
+|---|---|---|---|
+| 9 | `512-555` (too short) | `error: INVALID_PHONE`, `retry_required: true` | ✅ Pass |
+| 10 | `123` (far too short) | `error: INVALID_PHONE` | ✅ Pass |
+| 11 | `512555778899` (too many digits) | `error: INVALID_PHONE` | ✅ Pass |
+| 12 | `abc-def-ghij` (non-numeric) | `error: INVALID_PHONE` | ✅ Pass |
+| 13 | `""` (empty string) | `error: PHONE_REQUIRED`, distinct message from `INVALID_PHONE` | ✅ Pass |
+| 14 | `{}` (field omitted entirely) | `error: PHONE_REQUIRED` | ✅ Pass |
+| 15 | `---( )---` (formatting characters only, no digits) | `error: INVALID_PHONE` | ✅ Pass |
+
+### Coverage summary
+
+- **Happy path:** existing patient resolution across 6 input format variants
+- **Cold-start path:** unknown caller creation and correct non-match on repeat lookup
+- **Negative path:** 7 distinct malformed/missing input cases, each returning the correct error code and caller-facing message
+- **Infrastructure:** DNS/connectivity failure identified and permanently resolved at the container level, not worked around at the workflow level

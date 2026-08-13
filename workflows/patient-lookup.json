@@ -1,0 +1,573 @@
+{
+  "name": "Patient Lookup",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "patient-lookup",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        -48
+      ],
+      "id": "b0d742cb-aded-4264-946e-47d647ea56c5",
+      "name": "Webhook",
+      "webhookId": "74a58252-5f0e-4236-99c5-95b9347e01bd"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f4026def-7c7b-45bd-b074-edd4dce8498e",
+              "name": "phone",
+              "value": "={{ $json.body?.phone ?? $json.phone ?? '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        224,
+        48
+      ],
+      "id": "9c7a119a-d713-4ca0-b97d-1d74daab80bb",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appxpO525SBKQT6A4",
+          "mode": "list",
+          "cachedResultName": "Smile Forever Dental — Clinic CRM",
+          "cachedResultUrl": "https://airtable.com/appxpO525SBKQT6A4"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl1jdwuQGpa7gRqt",
+          "mode": "list",
+          "cachedResultName": "Appointments",
+          "cachedResultUrl": "https://airtable.com/appxpO525SBKQT6A4/tbl1jdwuQGpa7gRqt"
+        },
+        "filterByFormula": "={Phone}='{{ $json.phone }}'",
+        "options": {},
+        "sort": {
+          "property": [
+            {
+              "field": "Date",
+              "direction": "desc"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        896,
+        -48
+      ],
+      "id": "fa4676ba-dcd7-45e8-8889-854918195810",
+      "name": "Search records",
+      "retryOnFail": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "603kf9bINhUTctfF",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "38115d91-5b61-491b-ad18-2cf060be7650",
+              "leftValue": "={{ $('Search records').all().length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1120,
+        -48
+      ],
+      "id": "e90794c3-55bf-4b1b-b8c4-135ac92cd051",
+      "name": "IF Patient Found?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const airtableRecord = $('Search records').first().json;\n\n// Airtable Search Records returns the actual fields\n// inside the \"fields\" object.\nconst record = airtableRecord.fields ?? airtableRecord;\n\nconst patientName = record['Patient Name'] ?? null;\nconst phone = record['Phone'] ?? null;\nconst date = record['Date'] ?? null;\nconst service = record['Service'] ?? null;\nconst dentist = record['Dentist'] ?? null;\nconst status = record['Status'] ?? null;\n\nreturn {\n  json: {\n    patient_found: true,\n    patient_name: patientName,\n    phone: phone,\n    last_appointment_date: date,\n    last_appointment_service: service,\n    dentist: dentist,\n    status: status,\n    message: patientName\n      ? `Welcome back, ${patientName}. I can see your last visit was for ${service || 'your previous appointment'} with ${dentist || 'our dental team'}.`\n      : `Welcome back. I found your patient record, but some information is missing.`\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        -192
+      ],
+      "id": "af52255d-a6a3-4d18-97e0-26eb8d752587",
+      "name": "Format Existing Patient"
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  json: {\n    patient_found: false,\n    message: \"It looks like this is your first time calling us. Could I get your name to get started?\"\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        48
+      ],
+      "id": "c3c14e64-5ddb-408b-a3ce-bcc40919bbca",
+      "name": "Format New Patient"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appxpO525SBKQT6A4",
+          "mode": "list",
+          "cachedResultName": "Smile Forever Dental — Clinic CRM",
+          "cachedResultUrl": "https://airtable.com/appxpO525SBKQT6A4"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl1jdwuQGpa7gRqt",
+          "mode": "list",
+          "cachedResultName": "Appointments",
+          "cachedResultUrl": "https://airtable.com/appxpO525SBKQT6A4/tbl1jdwuQGpa7gRqt"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Patient Name": "New Patient",
+            "Status": "New Patient",
+            "Phone": "={{ $('Edit Fields').item.json.phone }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Patient Name",
+              "displayName": "Patient Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Time",
+              "displayName": "Time",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Dentist",
+              "displayName": "Dentist",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Dr. Reyes",
+                  "value": "Dr. Reyes"
+                },
+                {
+                  "name": "Dr. Malik",
+                  "value": "Dr. Malik"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Service",
+              "displayName": "Service",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Booked",
+                  "value": "Booked"
+                },
+                {
+                  "name": "Completed",
+                  "value": "Completed"
+                },
+                {
+                  "name": "Cancelled",
+                  "value": "Cancelled"
+                },
+                {
+                  "name": "No-show",
+                  "value": "No-show"
+                },
+                {
+                  "name": "New Patient",
+                  "value": "New Patient"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "event_id",
+              "displayName": "event_id",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        1344,
+        96
+      ],
+      "id": "daca9331-c92d-493d-896a-49f96e35f0c7",
+      "name": "Create New Patient Placeholder",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "603kf9bINhUTctfF",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        144
+      ],
+      "id": "c6d3b04f-81ad-4c73-a01b-82c6f2c7e093",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c9af267e-5e7a-46ca-84e7-33d7b3f49590",
+              "leftValue": "={{ $json.phone_valid }}",
+              "rightValue": "^\\d{10}$",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        672,
+        48
+      ],
+      "id": "c9e909a0-4f35-45e2-9a04-e44318ea27f8",
+      "name": "IF: Valid Phone?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const errorType = $json.phone_error || 'INVALID_PHONE';\n\nif (errorType === 'PHONE_REQUIRED') {\n  return {\n    json: {\n      patient_found: false,\n      phone_valid: false,\n      error: 'PHONE_REQUIRED',\n      message: 'I need your phone number to look up your patient record. Please provide your 10-digit phone number, including the area code.',\n      retry_required: true\n    }\n  };\n}\n\nreturn {\n  json: {\n    patient_found: false,\n    phone_valid: false,\n    error: 'INVALID_PHONE',\n    message: 'I’m sorry, but I couldn’t understand that phone number. Please provide your 10-digit phone number, including the area code.',\n    retry_required: true\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        144
+      ],
+      "id": "d1cd5e2b-7af4-476c-9b9a-d8e988ee392a",
+      "name": "Format Invalid Phone"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = String($json.phone ?? '').trim();\n\nif (!raw) {\n  return {\n    json: {\n      ...$json,\n      phone: '',\n      phone_valid: false,\n      phone_error: 'PHONE_REQUIRED',\n    }\n  };\n}\n\n// Remove common formatting characters.\nconst digits = raw.replace(/\\D/g, '');\n\n// Accept:\n// 10 digits -> US local number\n// 11 digits beginning with 1 -> US number with country code\nlet normalizedDigits = digits;\n\nif (digits.length === 11 && digits.startsWith('1')) {\n  normalizedDigits = digits.slice(1);\n}\n\nif (normalizedDigits.length !== 10) {\n  return {\n    json: {\n      ...$json,\n      phone: '',\n      phone_valid: false,\n      phone_error: 'INVALID_PHONE',\n    }\n  };\n}\n\nconst normalizedPhone =\n  `${normalizedDigits.slice(0, 3)}-${normalizedDigits.slice(3, 6)}-${normalizedDigits.slice(6)}`;\n\nreturn {\n  json: {\n    ...$json,\n    phone: normalizedPhone,\n    phone_valid: true,\n    phone_error: null,\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        48
+      ],
+      "id": "d85fb633-ecfc-4804-9d5e-c793798fe8bc",
+      "name": "Normalize & Validate Phone"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1a7cbc2b-60dc-42b9-8f8e-02aa4a585174",
+              "leftValue": "={{\n  $('Search records').first().json.fields['Patient Name'] !== 'New Patient' &&\n  $('Search records').first().json.fields['Status'] !== 'New Patient'\n}}",
+              "rightValue": 0,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1344,
+        -144
+      ],
+      "id": "3d0e92b6-8f36-4bb4-b0fd-f3e2d94a1f37",
+      "name": "If Real Patient"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Normalize & Validate Phone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search records": {
+      "main": [
+        [
+          {
+            "node": "IF Patient Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Patient Found?": {
+      "main": [
+        [
+          {
+            "node": "If Real Patient",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create New Patient Placeholder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format New Patient": {
+      "main": [
+        []
+      ]
+    },
+    "Format Existing Patient": {
+      "main": [
+        []
+      ]
+    },
+    "Create New Patient Placeholder": {
+      "main": [
+        [
+          {
+            "node": "Format New Patient",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Valid Phone?": {
+      "main": [
+        [
+          {
+            "node": "Search records",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Invalid Phone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Invalid Phone": {
+      "main": [
+        []
+      ]
+    },
+    "Normalize & Validate Phone": {
+      "main": [
+        [
+          {
+            "node": "IF: Valid Phone?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Real Patient": {
+      "main": [
+        [
+          {
+            "node": "Format Existing Patient",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format New Patient",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "e6914ec7-654e-4093-a5dc-e2a54bb72a35",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9e6ceb7d66ed56a868152e2d15fd6558a2f97d2c2a2bc7bf99a6d1bd40613498"
+  },
+  "nodeGroups": [],
+  "id": "1djsj8eVrBjqGj1c",
+  "tags": []
+}

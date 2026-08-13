@@ -96,3 +96,44 @@ Day 2 of 15 — Workflow 1 (Check Availability) complete and tested.
 - [ ] 5. FAQ / Knowledge Base (RAG)
 - [ ] 6. SMS/WhatsApp Confirmation
 - [ ] 7. Escalation / Human Handoff
+
+- **Aug 14** Built and fully verified Workflow 4 — Patient Lookup / CRM. Given a 
+  caller's phone number, the workflow deterministically resolves whether they are 
+  an existing patient, a first-time caller, or provided invalid input, without 
+  relying on the voice agent's LLM to track identity state across a call.
+
+  Phone input is normalized before any lookup occurs — formatted, unformatted, 
+  and US country-code variants (`(512) 555-7788`, `5125557788`, `+1 512-555-7788`) 
+  all collapse to a single canonical `XXX-XXX-XXXX` shape, so Airtable search 
+  filters never have to account for formatting variance.
+
+  Patient resolution required a two-stage check rather than a simple existence 
+  test. The workflow creates a lightweight placeholder record on first contact 
+  from an unknown number, so repeat lookups within the same call recognize the 
+  number — but a placeholder record still satisfies a naive "record exists" 
+  condition, which initially caused unresolved callers to be misidentified as 
+  existing patients (`"Welcome back, undefined..."`). Fixed by separating 
+  *record exists* from *record is a real patient* into two explicit conditions.
+
+  As with Workflow 1, this workflow supports both external (webhook) and 
+  internal (sub-workflow) invocation through a single normalized entry point, 
+  keeping it consistent with the trigger pattern established across the project.
+
+  Verified against a 14-case test suite covering format-variant patient 
+  resolution, first-time caller handling, repeat-lookup correctness on 
+  placeholder records, and seven distinct invalid-input scenarios (missing, 
+  malformed, oversized, non-numeric, and formatting-only input). Also diagnosed 
+  and permanently resolved a Docker DNS regression — the n8n container had lost 
+  its custom DNS configuration after a restart, causing intermittent Airtable 
+  connection failures — by recreating the container with explicit DNS flags and 
+  `--restart unless-stopped` so the configuration survives future restarts. Full 
+  defect log and test results in `docs/test-cases.md`.
+
+## Workflows (MCP Tools)
+- [x] 1. Check Availability
+- [x] 2. Book Appointment — integrated with Workflow 1, tested (6/6 cases passing)
+- [x] 3. Reschedule / Cancel Appointment — integrated with Workflow 1, tested (6/6 cases passing)
+- [x] 4. Patient Lookup (CRM) — dual-trigger, phone normalization, tested (14/14 cases passing)
+- [ ] 5. FAQ / Knowledge Base (RAG)
+- [ ] 6. SMS/WhatsApp Confirmation
+- [ ] 7. Escalation / Human Handoff
