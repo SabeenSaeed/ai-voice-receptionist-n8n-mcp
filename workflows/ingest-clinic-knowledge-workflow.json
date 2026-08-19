@@ -1,0 +1,159 @@
+{
+  "name": "Ingest Clinic Knowledge",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "92047169-a349-494e-8822-40f09651813c",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  // ─────────────────────────────────────\n  // CLINIC BASICS\n  // ─────────────────────────────────────\n\n  {\n    json: {\n      content: \"Smile Forever Dental is located at 4820 Maple Ridge Drive, Suite 200, Austin, TX 78731.\",\n      metadata: { topic: \"clinic_basics\", type: \"location\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"Smile Forever Dental is open Monday through Thursday from 8:00 AM to 6:00 PM, Friday from 8:00 AM to 4:00 PM, Saturday from 9:00 AM to 1:00 PM, and is closed on Sunday.\",\n      metadata: { topic: \"hours\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"Smile Forever Dental does not accept walk-ins. Appointments are required for all visits, including emergencies.\",\n      metadata: { topic: \"appointment_policy\", type: \"walk_ins\" }\n    }\n  },\n\n  // ─────────────────────────────────────\n  // DENTISTS\n  // ─────────────────────────────────────\n\n  {\n    json: {\n      content: \"Dr. Amelia Reyes is a DDS specializing in general dentistry, including cleanings, fillings, and exams. Dr. Reyes works Monday through Friday.\",\n      metadata: { topic: \"dentists\", dentist: \"amelia_reyes\", specialty: \"general_dentistry\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"Dr. Farhan Malik is a DMD specializing in orthodontics, including braces and Invisalign consultations. Dr. Malik works Tuesday, Thursday, and Saturday.\",\n      metadata: { topic: \"dentists\", dentist: \"farhan_malik\", specialty: \"orthodontics\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"Dr. Priya Nathan is a DDS specializing in pediatric dentistry. Dr. Nathan works Monday, Wednesday, and Friday.\",\n      metadata: { topic: \"dentists\", dentist: \"priya_nathan\", specialty: \"pediatric_dentistry\" }\n    }\n  },\n\n  // ─────────────────────────────────────\n  // SERVICES & PRICING\n  // ─────────────────────────────────────\n\n  {\n    json: {\n      content: \"A routine check-up and cleaning costs $80 to $150. The typical duration is 45 minutes, and the bookable single-visit duration is 45 minutes.\",\n      metadata: { topic: \"pricing\", service: \"checkup\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"A dental X-ray set costs $50 to $120. The typical duration is 15 minutes, and the bookable single-visit duration is 15 minutes.\",\n      metadata: { topic: \"pricing\", service: \"xray\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"A tooth filling costs $120 to $250. The typical duration is 30 to 45 minutes, and the bookable single-visit duration is 40 minutes.\",\n      metadata: { topic: \"pricing\", service: \"filling\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"Root canal treatment costs $500 to $1,200. The typical duration is 60 to 90 minutes, and the bookable single-visit duration is 75 minutes.\",\n      metadata: { topic: \"pricing\", service: \"root_canal\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"A dental crown costs $800 to $1,500 and normally requires two visits: a preparation and impression visit followed by a separate placement visit when the crown is ready. The preparation and impression visit has a bookable duration of 60 minutes.\",\n      metadata: { topic: \"pricing\", service: \"crown\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"A simple tooth extraction costs $150 to $300. The typical and bookable single-visit duration is 30 minutes.\",\n      metadata: { topic: \"pricing\", service: \"extraction\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"In-office teeth whitening costs $300 to $650. The typical and bookable single-visit duration is 60 minutes.\",\n      metadata: { topic: \"pricing\", service: \"whitening\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"An orthodontic consultation is free. The typical and bookable single-visit duration is 30 minutes.\",\n      metadata: { topic: \"pricing\", service: \"ortho_consultation\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"Full braces treatment costs $3,000 to $7,000 over a multi-month treatment plan. Braces are booked as individual 30-minute adjustment visits rather than booking the entire treatment at once.\",\n      metadata: { topic: \"pricing\", service: \"braces\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"Full Invisalign treatment costs $3,500 to $8,000 over a multi-month treatment plan. Invisalign is booked as individual 30-minute check-in visits rather than booking the entire treatment at once.\",\n      metadata: { topic: \"pricing\", service: \"invisalign\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"A pediatric check-up and cleaning costs $60 to $120. The typical and bookable single-visit duration is 30 minutes.\",\n      metadata: { topic: \"pricing\", service: \"pediatric_checkup\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"An emergency visit costs $150 to $300 plus the cost of any treatment needed. The baseline bookable duration is 30 minutes, and the front desk may extend the appointment depending on severity.\",\n      metadata: { topic: \"pricing\", service: \"emergency\" }\n    }\n  },\n\n  // ─────────────────────────────────────\n  // PRICING POLICY\n  // ─────────────────────────────────────\n\n  {\n    json: {\n      content: \"Smile Forever Dental prices are provided as ranges, not fixed quotes. Final cost depends on the examination and insurance coverage.\",\n      metadata: { topic: \"pricing_policy\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"The clinic should always provide price ranges rather than fixed quotes. Patients should be informed that the final cost depends on the examination and insurance coverage.\",\n      metadata: { topic: \"pricing_policy\", type: \"disclaimer\" }\n    }\n  },\n\n  // ─────────────────────────────────────\n  // INSURANCE\n  // ─────────────────────────────────────\n\n  {\n    json: {\n      content: \"Smile Forever Dental accepts most major PPO dental insurance plans, including Delta Dental PPO, Cigna Dental, Aetna Dental, MetLife Dental, Guardian Dental, and UnitedHealthcare Dental.\",\n      metadata: { topic: \"insurance\", type: \"accepted_plans\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"Smile Forever Dental does not accept DHMO-only plans or out-of-state Medicaid dental plans.\",\n      metadata: { topic: \"insurance\", type: \"not_accepted\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"Insurance coverage is not guaranteed over the phone. Patients should confirm their specific insurance plan with the front desk before their visit.\",\n      metadata: { topic: \"insurance\", type: \"verification_policy\" }\n    }\n  },\n\n  // ─────────────────────────────────────\n  // EMERGENCY / ESCALATION POLICY\n  // ─────────────────────────────────────\n\n  {\n    json: {\n      content: \"Severe or uncontrolled pain, facial swelling, trauma, a knocked-out or broken tooth, or uncontrolled bleeding should be treated as a dental emergency and escalated to a human at the front desk immediately.\",\n      metadata: { topic: \"emergency_policy\", type: \"escalation\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"The AI receptionist should not attempt to resolve dental emergencies. Emergency cases should be escalated to a human according to the clinic's emergency workflow.\",\n      metadata: { topic: \"emergency_policy\", type: \"human_escalation\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"The AI receptionist must not provide medical or dental advice or diagnosis. It should not recommend medications or speculate about a patient's condition.\",\n      metadata: { topic: \"safety_policy\", type: \"no_medical_advice\" }\n    }\n  },\n\n  // ─────────────────────────────────────\n  // BOOKING RULES\n  // ─────────────────────────────────────\n\n  {\n    json: {\n      content: \"The bookable single-visit duration for a routine check-up and cleaning is 45 minutes.\",\n      metadata: { topic: \"booking_duration\", service: \"checkup\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"The bookable single-visit duration for a dental X-ray set is 15 minutes.\",\n      metadata: { topic: \"booking_duration\", service: \"xray\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"The bookable single-visit duration for a tooth filling is 40 minutes.\",\n      metadata: { topic: \"booking_duration\", service: \"filling\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"The bookable single-visit duration for a root canal treatment is 75 minutes.\",\n      metadata: { topic: \"booking_duration\", service: \"root_canal\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"The bookable duration for a dental crown preparation and impression visit is 60 minutes. The crown placement is booked separately when the crown is ready.\",\n      metadata: { topic: \"booking_duration\", service: \"crown\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"The bookable single-visit duration for a simple tooth extraction is 30 minutes.\",\n      metadata: { topic: \"booking_duration\", service: \"extraction\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"The bookable single-visit duration for in-office teeth whitening is 60 minutes.\",\n      metadata: { topic: \"booking_duration\", service: \"whitening\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"The bookable single-visit duration for an orthodontic consultation is 30 minutes.\",\n      metadata: { topic: \"booking_duration\", service: \"ortho_consultation\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"Braces are booked as individual 30-minute adjustment visits throughout the multi-month treatment plan.\",\n      metadata: { topic: \"booking_duration\", service: \"braces\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"Invisalign is booked as individual 30-minute check-in visits throughout the multi-month treatment plan.\",\n      metadata: { topic: \"booking_duration\", service: \"invisalign\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"The bookable single-visit duration for a pediatric check-up and cleaning is 30 minutes.\",\n      metadata: { topic: \"booking_duration\", service: \"pediatric_checkup\" }\n    }\n  },\n\n  {\n    json: {\n      content: \"An emergency visit has a baseline bookable duration of 30 minutes. The front desk may extend the appointment depending on the severity of the situation.\",\n      metadata: { topic: \"booking_duration\", service: \"emergency\" }\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "40e4ca66-87a3-4d89-b423-0bf9c6e324d5",
+      "name": "Build Knowledge Chunks"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "clinic_knowledge",
+          "mode": "list",
+          "cachedResultName": "clinic_knowledge"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        448,
+        0
+      ],
+      "id": "87ebfbcb-8944-42d4-af49-342e868e5e25",
+      "name": "Supabase Vector Store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "okHDF2SJlf4ItPOJ",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "nomic-embed-text:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        352,
+        240
+      ],
+      "id": "c7ab5284-8f38-455d-9049-c95d50a5765d",
+      "name": "Embeddings Ollama",
+      "credentials": {
+        "ollamaApi": {
+          "id": "eWDnQlg6ND1NgI23",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "={{$json.content}}",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "topic",
+                "value": "={{ $json.metadata.topic }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        592,
+        240
+      ],
+      "id": "22e41680-8cb0-4f71-9f07-36a961b8e4c5",
+      "name": "Default Data Loader"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Build Knowledge Chunks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Knowledge Chunks": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "64b1540f-ab04-4fa7-9ecc-4a7dc9244beb",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9e6ceb7d66ed56a868152e2d15fd6558a2f97d2c2a2bc7bf99a6d1bd40613498"
+  },
+  "nodeGroups": [],
+  "id": "ykMj81DP4S98HSRg",
+  "tags": []
+}

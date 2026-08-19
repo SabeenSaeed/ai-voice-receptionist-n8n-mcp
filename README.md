@@ -137,3 +137,36 @@ Day 2 of 15 — Workflow 1 (Check Availability) complete and tested.
 - [ ] 5. FAQ / Knowledge Base (RAG)
 - [ ] 6. SMS/WhatsApp Confirmation
 - [ ] 7. Escalation / Human Handoff
+
+- **Aug 19** Built and hardened Workflow 5 — FAQ / Knowledge Base (RAG), split
+  into two sub-workflows: 5a ingests clinic knowledge into Supabase via Ollama
+  embeddings, and 5b handles live query-time retrieval (Ollama embedding →
+  Supabase pgvector similarity search → Groq for response generation).
+
+  Ran a 20-case adversarial test suite covering factual accuracy, prompt-
+  injection resistance, emergency-escalation policy, and — critically — PHI
+  isolation between the patient-record data (Workflow 4) and the public FAQ
+  corpus, given that both live in the same Supabase project. Confirmed via
+  direct SQL query that patient records were never ingested into the shared
+  vector store, closing a real risk flagged before this workflow was built:
+  an unauthenticated caller extracting PHI through the FAQ endpoint.
+
+  Found and fixed four defects: retrieval had no similarity threshold, so a
+  null or malformed query embedding still returned a plausible-looking (but
+  meaningless) match that Groq answered from confidently rather than
+  declining — fixed by adding a calibrated `match_threshold` to the Supabase
+  RPC rather than relying on prompt-level refusal alone. Also fixed emergency
+  responses that contradicted clinic policy (inviting a walk-in the clinic
+  doesn't accept), price refusals that withheld real range data the model
+  had available, and insurance answers stated as flat guarantees instead of
+  including the required front-desk verification caveat. Full test detail
+  and defect log in `docs/test-cases.md`.
+
+## Workflows (MCP Tools)
+- [x] 1. Check Availability
+- [x] 2. Book Appointment — integrated with Workflow 1, tested (6/6 cases passing)
+- [x] 3. Reschedule / Cancel Appointment — integrated with Workflow 1, tested (6/6 cases passing)
+- [x] 4. Patient Lookup (CRM) — dual-trigger, phone normalization, tested (14/14 cases passing)
+- [x] 5. FAQ / Knowledge Base (RAG) — ingest (5a) + query (5b), tested (20/20 cases passing)
+- [ ] 6. SMS/WhatsApp Confirmation
+- [ ] 7. Escalation / Human Handoff
