@@ -82,17 +82,11 @@
       "parameters": {
         "method": "POST",
         "url": "https://juexmkaskfukpcjdmnmq.supabase.co/rest/v1/rpc/match_documents",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "apikey",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1ZXhta2Fza2Z1a3BjamRtbm1xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NjM2MTY3OCwiZXhwIjoyMTAxOTM3Njc4fQ.a_9bvzLyuZxBK-UM7N0ImvsEbBhqL9ufnsEwNsJx79E"
-            },
-            {
-              "name": "Authorization",
-              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1ZXhta2Fza2Z1a3BjamRtbm1xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NjM2MTY3OCwiZXhwIjoyMTAxOTM3Njc4fQ.a_9bvzLyuZxBK-UM7N0ImvsEbBhqL9ufnsEwNsJx79E"
-            },
             {
               "name": "Content-Type",
               "value": "application/json"
@@ -119,7 +113,13 @@
       "id": "6fea5fde-0846-4efb-8d08-1a14f12bfe89",
       "name": "Supabase HTTP Request",
       "alwaysOutputData": true,
-      "retryOnFail": true
+      "retryOnFail": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "eIYojXkrJdgFz5w8",
+          "name": "Supabase account 2"
+        }
+      }
     },
     {
       "parameters": {
@@ -279,7 +279,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "1699cde5-6e24-43f7-ad73-b6de20d97436",
+  "versionId": "8222cdf0-ac63-4425-9cd1-f2e2e506096c",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "9e6ceb7d66ed56a868152e2d15fd6558a2f97d2c2a2bc7bf99a6d1bd40613498"
