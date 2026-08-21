@@ -1,0 +1,290 @@
+{
+  "name": "FAQ Knowledge Base",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "faq-knowledge",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -688,
+        -64
+      ],
+      "id": "4e96ac97-bda7-4b96-95c8-b81f608b12a2",
+      "name": "Webhook",
+      "webhookId": "8d704f12-afab-412c-bc3e-5138a55ee6cb"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "question"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -688,
+        128
+      ],
+      "id": "48d8c58f-15d3-4160-8112-0516f95a2457",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "605d698e-9ebe-455d-8a30-a90609c97e55",
+              "name": "question",
+              "value": "={{ $json.body?.question || $json.question }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -464,
+        32
+      ],
+      "id": "b1c71012-e9b8-4e79-a5c3-666bac2baba3",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:11434/api/embed",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  {\n    model: \"nomic-embed-text\",\n    input: $json.question\n  }\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -240,
+        32
+      ],
+      "id": "44f98c93-be86-491c-ac73-6e15e9ad62ce",
+      "name": "Ollama HTTP Request"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://juexmkaskfukpcjdmnmq.supabase.co/rest/v1/rpc/match_documents",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1ZXhta2Fza2Z1a3BjamRtbm1xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NjM2MTY3OCwiZXhwIjoyMTAxOTM3Njc4fQ.a_9bvzLyuZxBK-UM7N0ImvsEbBhqL9ufnsEwNsJx79E"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1ZXhta2Fza2Z1a3BjamRtbm1xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NjM2MTY3OCwiZXhwIjoyMTAxOTM3Njc4fQ.a_9bvzLyuZxBK-UM7N0ImvsEbBhqL9ufnsEwNsJx79E"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  {\n    query_embedding: $json.embeddings[0],\n    match_count: 3,\n    filter: {},\n    match_threshold: 0.5\n  }\n}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -16,
+        32
+      ],
+      "id": "6fea5fde-0846-4efb-8d08-1a14f12bfe89",
+      "name": "Supabase HTTP Request",
+      "alwaysOutputData": true,
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "groqApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  {\n    model: \"openai/gpt-oss-20b\",\n    messages: [\n      {\n        role: \"system\",\n        content: `You are the FAQ assistant for Smile Forever Dental.\n\nAnswer the user's question using ONLY the information contained in the retrieved context below.\n\nRules:\n- Do not invent or assume information.\n- Do not provide medical advice or diagnosis.\n- Do not invent prices, hours, insurance policies, dentist information, services, or clinic policies.\n- If the answer cannot be found in the retrieved context, say that you don't have that information and recommend contacting the front desk.\n- Keep answers concise, clear, and natural for a voice receptionist.\n\nPRICING RULES:\n- Never state a single fixed price, even if the caller insists on one exact number.\n- If a price range exists in the retrieved context, always share that range.\n- Always note that the final cost depends on the exam and insurance coverage.\n\nINSURANCE RULES:\n- Answer only from the retrieved context.\n- Never guarantee coverage.\n- Recommend confirming the specific plan with the front desk.\n\nEMERGENCY HANDLING RULES:\n- Severe pain, facial swelling, trauma, knocked-out/broken tooth, or uncontrolled bleeding are dental emergencies.\n- Never invite the caller to walk in.\n- Never give medical or first-aid advice.\n- Ask for the caller's name and callback number.\n- Tell them a team member will call them back right away.\n- For unrelated medical emergencies, tell them to call 911 or go to the nearest ER.\n\n----------------\nRetrieved Context:\n${$json.context}`\n      },\n      {\n        role: \"user\",\n        content: $('Edit Fields').first().json.question\n      }\n    ]\n  }\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        432,
+        32
+      ],
+      "id": "4bcf7578-dd58-4841-a615-c2a482e3cd8c",
+      "name": "Groq HTTP Request",
+      "credentials": {
+        "groqApi": {
+          "id": "XSEXuOrsGeITRRlO",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "018650d1-5b2a-4cc8-84f4-55491ba5520c",
+              "name": "answer",
+              "value": "={{ $json.choices[0].message.content }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        656,
+        32
+      ],
+      "id": "4ea28d87-204f-4077-af84-8b670d425b7c",
+      "name": "FAQ Answer"
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = $('Supabase HTTP Request').all();\n\nconst context = results\n  .map(item => item.json.content)\n  .filter(Boolean)\n  .join('\\n\\n---\\n\\n');\n\nreturn [\n  {\n    json: {\n      context\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        32
+      ],
+      "id": "6ebcdda5-8d8b-4a67-aee1-a9caee683466",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Ollama HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Supabase HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "FAQ Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Groq HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "1699cde5-6e24-43f7-ad73-b6de20d97436",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9e6ceb7d66ed56a868152e2d15fd6558a2f97d2c2a2bc7bf99a6d1bd40613498"
+  },
+  "nodeGroups": [],
+  "id": "iZHZOrFkZsDk926C",
+  "tags": []
+}

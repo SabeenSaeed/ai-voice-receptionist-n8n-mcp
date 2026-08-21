@@ -170,3 +170,67 @@ Day 2 of 15 — Workflow 1 (Check Availability) complete and tested.
 - [x] 5. FAQ / Knowledge Base (RAG) — ingest (5a) + query (5b), tested (20/20 cases passing)
 - [ ] 6. SMS/WhatsApp Confirmation
 - [ ] 7. Escalation / Human Handoff
+
+- **Aug 21** Diagnosed and fixed a critical bug in Workflow 5b (FAQ query) that
+  had gone undetected in the Aug 19 test pass: the context-assembly node was
+  a Set node rather than a Code node, so it executed once per incoming
+  Supabase match (3 times, since `match_count: 3`) instead of once per query.
+  This both tripled every FAQ response and corrupted the `context` field
+  passed to Groq, since a Set-node expression field can't return a
+  multi-item array the way a Code node can — the LLM was receiving a
+  malformed object instead of concatenated document text, which is why
+  answers were falling back to "I don't have that information" even for
+  FAQs that existed in the knowledge base. Fixed by replacing the node with
+  a Code node running in "Run Once for All Items" mode. Re-verified against
+  6 targeted cases post-fix: clinic hours, pricing with disclaimer,
+  insurance without coverage guarantee, honest fallback on out-of-scope
+  questions, dental-emergency escalation (no walk-in invitation, no
+  first-aid advice), and correct 911/ER redirect for non-dental medical
+  emergencies. 6/6 passing.
+
+  Also cross-checked the 5a ingest workflow's Supabase Vector Store output
+  against the `match_documents` RPC's column references (`content`,
+  `metadata`, `embedding`) to rule out a schema mismatch as a contributing
+  cause — confirmed aligned, isolating the Set-node bug as the sole root
+  cause.
+
+  Began integration on Workflow 6 (SMS/WhatsApp Confirmation). Twilio's
+  trial provisioning is currently gated for Pakistan-registered accounts,
+  so pivoted the implementation to Meta's WhatsApp Cloud API directly —
+  built the workflow against Meta's Graph API `/messages` endpoint,
+  including phone normalization and message templating, and validated the
+  request/response contract independently of live sending.
+
+  Live account activation is currently blocked by Meta's business app
+  review (a generic anti-fraud hold on the developer account, unrelated to
+  the integration itself). This is a known review-queue issue, not a code
+  or architecture problem — the workflow is implementation-complete and
+  ready to go live once the account clears review. Continuing to work the
+  Meta verification process in parallel; will resume live testing and
+  bring Workflow 6 fully online once account access is restored.
+
+  Rebuilt Workflow 7 (Escalation / Human Handoff) as a lightweight,
+  dependency-light fallback: normalizes `reason_code` into four categories
+  (`angry_caller`, `out_of_scope`, `repeated_failure`, `other`), returns a
+  tone-matched spoken handoff line for the voice agent, and — since a
+  verbal handoff alone doesn't actually notify anyone — added a Slack
+  alert and an Airtable log (separate `Escalations` table, kept isolated
+  from the patient-records table) running in parallel post-response, both
+  set to fail silently so a Slack or Airtable outage never blocks the
+  caller-facing message.
+
+  Finalized the VAPI persona/system prompt ("Ava") covering call opening,
+  tool-usage announcements, pricing/insurance disclaimers, emergency
+  escalation priority, and human-handoff tone. Configured VAPI and
+  connected it to the local n8n instance through an ngrok tunnel targeting
+  the MCP server trigger endpoint — confirmed live end-to-end connectivity
+  between VAPI and the n8n MCP tool set for the first time today.
+
+## Workflows (MCP Tools)
+- [x] 1. Check Availability
+- [x] 2. Book Appointment — integrated with Workflow 1, tested (6/6 cases passing)
+- [x] 3. Reschedule / Cancel Appointment — integrated with Workflow 1, tested (6/6 cases passing)
+- [x] 4. Patient Lookup (CRM) — dual-trigger, phone normalization, tested (14/14 cases passing)
+- [x] 5. FAQ / Knowledge Base (RAG) — ingest (5a) + query (5b); critical context-assembly bug found and fixed post-launch, re-tested (6/6 cases passing)
+- [~] 6. SMS/WhatsApp Confirmation — pending
+- [x] 7. Escalation / Human Handoff — lightweight verbal handoff + Slack alert + Airtable logging, isolated from patient-records table

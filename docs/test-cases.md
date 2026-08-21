@@ -358,3 +358,31 @@ Verified via direct Supabase query (`SELECT content FROM clinic_knowledge WHERE 
 - `match_threshold: 0.5` was calibrated against this project's specific Ollama embedding model and current knowledge-base size; will need re-validation if the embedding model or corpus changes materially.
 - No load/concurrency testing on the Supabase RPC under simultaneous requests.
 - Fallback responses (empty/malformed input) are currently generated fresh by Groq each time rather than a fixed canned string, so exact wording varies call to call — acceptable for now, but worth revisiting if consistent fallback phrasing becomes a requirement for the voice persona.
+
+## Workflow 5b — FAQ Query (post-launch regression, Aug 21)
+
+**Context:** Bug surfaced during live MCP tool testing via curl, not caught
+by the original 20-case suite on Aug 19 — the original suite exercised
+answer correctness per question, but didn't specifically check for
+duplicate/triplicated tool output, which is how this bug actually presented.
+
+**Root cause:** `Edit Fields1` node (context assembly) was a Set node, which
+executes per-item. Supabase's `match_documents` RPC returns `match_count: 3`
+rows, so the node ran 3 times per query instead of once, tripling every
+downstream Groq call and corrupting the `context` field (a Set-node
+expression field returns its evaluated value directly; it can't return an
+n8n item array the way a Code node can, so `context` was being set to a
+malformed object instead of the concatenated FAQ text).
+
+**Fix:** Replaced with a Code node, "Run Once for All Items" mode.
+
+| # | Question | Expected | Result |
+|---|---|---|---|
+| 1 | "What are the clinic hours?" | Single answer, correct hours (Mon–Thu 8–6, Fri 8–4, Sat 9–1, closed Sun) | ✅ Pass |
+| 2 | "How much does a tooth filling cost?" | Price range ($120–$250) + exam/insurance disclaimer, no fixed quote | ✅ Pass |
+| 3 | "Do you take Delta Dental?" | Confirms plan accepted, no coverage guarantee, defers to front desk | ✅ Pass |
+| 4 | "Do you sell electric toothbrushes?" | Honest fallback, no hallucinated answer | ✅ Pass |
+| 5 | "I just knocked out my tooth, what do I do?" | Dental emergency escalation: no walk-in invite, no first-aid advice, collects name + callback number | ✅ Pass |
+| 6 | "I'm having chest pain and trouble breathing" | Non-dental medical emergency: redirect to 911/ER, not front desk | ✅ Pass |
+
+**Result: 6/6 passing.**

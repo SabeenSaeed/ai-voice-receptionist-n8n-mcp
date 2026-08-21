@@ -1,0 +1,246 @@
+{
+  "name": "Escalation / Human Handoff",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "caller_phone"
+            },
+            {
+              "name": "reason_code"
+            },
+            {
+              "name": "context_summary"
+            },
+            {
+              "name": "event_id"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -672,
+        128
+      ],
+      "id": "304f3425-5a49-432e-aee6-f1446bf39a69",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalize reason_code to a known set; default to 'other' if missing/unrecognized\nconst known = ['angry_caller', 'out_of_scope', 'repeated_failure', 'other'];\nlet code = ($json.reason_code || '').toString().trim().toLowerCase();\n\nif (!known.includes(code)) {\n  code = 'other';\n}\n\nreturn [\n  {\n    json: {\n      ...$json,\n      reason_code_normalized: code\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -448,
+        128
+      ],
+      "id": "11f94a35-6435-483b-9fe2-64341ebeba40",
+      "name": "Normalize Reason Code"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build a natural, apologetic handoff line tailored to the reason for escalation.\n// This is spoken by the voice AI to the caller — keep it warm, brief, and non-technical.\n\nconst messages = {\n  angry_caller: \"I'm really sorry for the frustration. Let me connect you with a member of our front desk team directly — they'll follow up with you personally as soon as possible.\",\n  out_of_scope: \"That's something our front desk team will need to help you with directly. I'll pass this along, and someone will get back to you shortly.\",\n  repeated_failure: \"I'm sorry this hasn't been resolved yet. Let me hand this over to a team member who can take care of it properly — they'll be in touch soon.\",\n  other: \"Let me connect you with a member of our front desk team who can help further. Someone will follow up with you shortly.\"\n};\n\nconst code = $json.reason_code_normalized;\nconst message_for_caller = messages[code] || messages.other;\n\nreturn [\n  {\n    json: {\n      status: 'escalated',\n      reason_code: code,\n      message_for_caller,\n      caller_phone: $json.caller_phone || null,\n      event_id: $json.event_id || null,\n      context_summary: $json.context_summary || null,\n      escalated_at: new Date().toISOString()\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        128
+      ],
+      "id": "298de87b-9495-4863-9da4-ab502315629f",
+      "name": "Build Handoff Response"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "YOUR_CHANNEL_ID_OR_NAME",
+          "mode": "list",
+          "cachedResultName": "front-desk-alerts"
+        },
+        "text": "=🚨 *Escalation Alert*\n*Reason:* {{ $json.reason_code }}\n*Caller phone:* {{ $json.caller_phone || 'not provided' }}\n*Event ID:* {{ $json.event_id || 'n/a' }}\n*Context:* {{ $json.context_summary || 'no summary provided' }}\n*Time:* {{ $json.escalated_at }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b09b6d1a-2429-4235-95c1-a8b8bf65f2b8",
+      "name": "Notify Slack",
+      "webhookId": "e8f7aa0a-db6b-42b4-b7c4-ae358fbf74a2",
+      "credentials": {
+        "slackApi": {
+          "id": "l8i5na70fDWJYr3n",
+          "name": "Slack account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "YOUR_AIRTABLE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "Smile Forever Dental"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Escalations",
+          "mode": "list",
+          "cachedResultName": "Escalations"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Caller Phone": "={{ $('Build Handoff Response').item.json.caller_phone }}",
+            "Reason Code": "={{ $('Build Handoff Response').item.json.reason_code }}",
+            "Context Summary": "={{ $('Build Handoff Response').item.json.context_summary }}",
+            "Event ID": "={{ $('Build Handoff Response').item.json.event_id }}",
+            "Status": "New",
+            "Escalated At": "={{ $('Build Handoff Response').item.json.escalated_at }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        256
+      ],
+      "id": "a265473a-1492-46cf-b688-74aa69fef59c",
+      "name": "Log to Airtable",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "603kf9bINhUTctfF",
+          "name": "Airtable Personal Access Token account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        224,
+        128
+      ],
+      "id": "6d1f8128-faf3-4a26-99a4-98dea1d1acc1",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Consolidate final response for the AI. Logging failures never block the caller-facing message.\nconst handoff = $('Build Handoff Response').first().json;\n\nlet slackOk = true;\ntry {\n  const slackItem = $('Notify Slack').first();\n  slackOk = !(slackItem && slackItem.json && slackItem.json.error);\n} catch (e) {\n  slackOk = false;\n}\n\nlet airtableOk = true;\ntry {\n  const airtableItem = $('Log to Airtable').first();\n  airtableOk = !(airtableItem && airtableItem.json && airtableItem.json.error);\n} catch (e) {\n  airtableOk = false;\n}\n\nreturn [\n  {\n    json: {\n      status: handoff.status,\n      reason_code: handoff.reason_code,\n      message_for_caller: handoff.message_for_caller,\n      caller_phone: handoff.caller_phone,\n      event_id: handoff.event_id,\n      escalated_at: handoff.escalated_at,\n      slack_notified: slackOk,\n      airtable_logged: airtableOk\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        128
+      ],
+      "id": "5b8a1e81-0895-4b80-b8dd-e6a45a98f3d2",
+      "name": "Final Response"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Normalize Reason Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Reason Code": {
+      "main": [
+        [
+          {
+            "node": "Build Handoff Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Handoff Response": {
+      "main": [
+        [
+          {
+            "node": "Notify Slack",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log to Airtable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Slack": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log to Airtable": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Final Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "d3c106d1-32f8-4c00-b6ec-236bf3140a63",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9e6ceb7d66ed56a868152e2d15fd6558a2f97d2c2a2bc7bf99a6d1bd40613498"
+  },
+  "nodeGroups": [],
+  "id": "Q55i8LXpbKEt5WCh",
+  "tags": []
+}
